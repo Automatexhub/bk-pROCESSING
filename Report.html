@@ -1,0 +1,622 @@
+<!-- STANDALONE SALES ORDERS REPORT MODULE (LIGHT THEME) -->
+<div class="bg-white border border-slate-200 p-4 md:p-6 rounded-2xl shadow-sm space-y-4">
+  <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+    <div>
+      <h3 class="text-sm font-extrabold text-blue-700 uppercase tracking-wider">📊 SALES ORDERS REPORT REGISTER (सेल ऑर्डर्स रिपोर्ट रजिस्टर)</h3>
+      <p class="text-[11px] text-slate-400">Search, filter, edit, update status and manage orders</p>
+    </div>
+    <span class="bg-blue-50 text-blue-700 text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider whitespace-nowrap">Reports Terminal</span>
+  </div>
+
+  <!-- Filters Panel -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+    <div>
+      <label class="block font-semibold uppercase text-slate-500 text-[9px] mb-1">Search Keyword</label>
+      <input type="text" id="rep-search-input" oninput="renderReportsTableData()" placeholder="Search Order ID, Customer, Salesman..." class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+    </div>
+    <div>
+      <label class="block font-semibold uppercase text-slate-500 text-[9px] mb-1">Filter by Status</label>
+      <select id="rep-status-filter" onchange="renderReportsTableData()" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        <option value="">All Statuses</option>
+        <option value="Pending">Pending</option>
+        <option value="Packed">Packed</option>
+        <option value="Billed">Billed</option>
+        <option value="Dispatched">Dispatched</option>
+        <option value="Cancelled">Cancelled</option>
+      </select>
+    </div>
+    <div>
+      <label class="block font-semibold uppercase text-slate-500 text-[9px] mb-1">Filter by Salesman</label>
+      <select id="rep-salesman-filter" onchange="renderReportsTableData()" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"></select>
+    </div>
+  </div>
+
+  <!-- Report Table -->
+  <div class="overflow-x-auto custom-scrollbar border border-slate-200 rounded-xl">
+    <table class="min-w-full divide-y divide-slate-100 text-[10px] md:text-xs text-left">
+      <thead class="bg-slate-50 text-slate-500 font-bold">
+        <tr>
+          <th class="px-2 md:p-3 uppercase">Order ID</th>
+          <th class="px-2 md:p-3 uppercase whitespace-nowrap hidden sm:table-cell">Date</th>
+          <th class="px-2 md:p-3 uppercase">Salesman</th>
+          <th class="px-2 md:p-3 uppercase">Customer Party</th>
+          <th class="px-2 md:p-3 uppercase text-right">Total Value</th>
+          <th class="px-2 md:p-3 uppercase text-center">Status</th>
+          <th class="px-2 md:p-3 uppercase text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rep-table-tbody" class="divide-y divide-slate-100 text-slate-600 bg-white"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- VIEW ITEMS DETAIL MODAL -->
+<div id="rep-modal-view-items" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[120] flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-lg rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xl text-left">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="font-extrabold text-slate-800 text-sm uppercase flex items-center gap-1.5">
+        📦 Order Items Details (<span id="rep-modal-view-order-id" class="text-blue-600 font-bold"></span>)
+      </h3>
+      <button onclick="closeRepViewItemsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-black">&times;</button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-100 text-xs text-left">
+        <thead class="bg-slate-50 text-slate-500 font-bold">
+          <tr>
+            <th class="p-3">Product Name</th>
+            <th class="p-3">Packing Type</th>
+            <th class="p-3 text-right">Quantity</th>
+            <th class="p-3 text-right">Rate</th>
+            <th class="p-3 text-right font-extrabold">Total</th>
+          </tr>
+        </thead>
+        <tbody id="rep-modal-view-items-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
+      </table>
+    </div>
+    
+    <div id="rep-modal-view-remarks-container" class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1 hidden">
+      <strong class="text-slate-400 font-bold uppercase text-[9px] block">Order Remarks / Shipping Notes (कस्टमर रिमार्क्स):</strong>
+      <p id="rep-modal-view-remarks" class="font-semibold text-slate-700 whitespace-pre-wrap"></p>
+    </div>
+
+    <div class="flex justify-between items-center text-xs pt-2 font-bold text-slate-800 border-t border-slate-100">
+      <span>Grand Total:</span>
+      <span id="rep-modal-view-grand-total" class="text-blue-600 text-sm">₹0.00</span>
+    </div>
+    <div class="flex gap-2">
+      <button onclick="closeRepViewItemsModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-xs shadow-sm transition-colors">
+        Close Details
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ✏️ ADMIN EDIT ORDER MODAL (WITH SEARCHABLE PRODUCT DROPDOWN) -->
+<div id="rep-modal-edit-order" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[130] flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-2xl rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xl text-left max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <h3 class="font-extrabold text-slate-800 text-sm uppercase flex items-center gap-1.5">
+        ✏️ Edit Order (<span id="rep-edit-order-id-title" class="text-blue-600 font-bold"></span>)
+      </h3>
+      <button onclick="closeRepEditOrderModal()" class="text-slate-400 hover:text-slate-600 text-lg font-black">&times;</button>
+    </div>
+
+    <form id="rep-form-edit-order" onsubmit="submitAdminEditOrder(event)" class="space-y-4 text-xs">
+      <input type="hidden" id="rep-edit-order-id" />
+      
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Customer Party Name</label>
+          <input type="text" id="rep-edit-customer" required class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Salesman Name</label>
+          <input type="text" id="rep-edit-salesman" required class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500" />
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Remarks / Shipping Notes</label>
+        <input type="text" id="rep-edit-remarks" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 font-bold focus:outline-none focus:ring-1 focus:ring-blue-500" />
+      </div>
+
+      <!-- Item Rows Grid -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="font-extrabold text-slate-700 uppercase text-[11px]">Order Line Items (उत्पाद एवं मात्रा)</label>
+          <button type="button" onclick="addEditOrderItemRow()" class="bg-blue-50 text-blue-600 border border-blue-200 hover:bg-blue-100 font-bold text-[10px] py-1 px-2.5 rounded-lg shadow-sm">+ Add Product</button>
+        </div>
+
+        <div class="border border-slate-200 rounded-xl bg-white">
+          <table class="min-w-full divide-y divide-slate-100 text-xs">
+            <thead class="bg-slate-100 font-bold text-slate-600">
+              <tr>
+                <th class="p-2 text-left">Product Name</th>
+                <th class="p-2 text-left">Packing Size</th>
+                <th class="p-2 text-right" style="width: 80px;">Qty</th>
+                <th class="p-2 text-right" style="width: 90px;">Rate (₹)</th>
+                <th class="p-2 text-center" style="width: 40px;">Delete</th>
+              </tr>
+            </thead>
+            <tbody id="rep-edit-items-tbody" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="closeRepEditOrderModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-lg">Cancel</button>
+        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg shadow-sm">Save & Update Order</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 🔄 ADMIN QUICK STATUS CHANGE MODAL -->
+<div id="rep-modal-change-status" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[130] flex items-center justify-center p-4 hidden">
+  <div class="bg-white w-full max-w-sm rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xl text-left">
+    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+      <h3 class="font-extrabold text-slate-800 text-sm uppercase">🔄 Change Order Status</h3>
+      <button onclick="closeRepStatusModal()" class="text-slate-400 hover:text-slate-600 text-lg font-black">&times;</button>
+    </div>
+    
+    <div class="space-y-3 text-xs">
+      <div>
+        <label class="block font-bold text-slate-500 uppercase mb-1">Select New Status</label>
+        <select id="rep-status-select" onchange="toggleStatusExtraFields(this.value)" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500">
+          <option value="Pending">Pending (पेंडिंग)</option>
+          <option value="Packed">Packed (पैक हो चुका)</option>
+          <option value="Billed">Billed (बिल बन गया)</option>
+          <option value="Dispatched">Dispatched (डिस्पैच हो गया)</option>
+          <option value="Cancelled">Cancelled (कैंसिल दर्ज करें)</option>
+        </select>
+      </div>
+
+      <!-- Extra Fields for Billed Status -->
+      <div id="rep-status-billed-fields" class="space-y-2 hidden">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Invoice Number</label>
+          <input type="text" id="rep-status-inv-no" placeholder="e.g. INV-1001" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg font-bold text-slate-800 focus:outline-none" />
+        </div>
+        <div>
+          <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Invoice Date</label>
+          <input type="date" id="rep-status-inv-date" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg font-bold text-slate-800 focus:outline-none" />
+        </div>
+      </div>
+
+      <!-- Extra Fields for Dispatched Status -->
+      <div id="rep-status-dispatch-fields" class="hidden">
+        <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Dispatch Source Yard</label>
+        <select id="rep-status-godown-select" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg font-bold text-slate-800 focus:outline-none"></select>
+      </div>
+
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeRepStatusModal()" class="flex-1 bg-slate-100 text-slate-700 font-semibold py-2 px-4 rounded-lg">Cancel</button>
+        <button onclick="submitRepStatusChange()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm">Update Status</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var activeRepOrderId = null;
+
+  function renderReportsPageData() {
+    populateReportsSalesmenFilter();
+    renderReportsTableData();
+  }
+
+  function populateReportsSalesmenFilter() {
+    var select = document.getElementById('rep-salesman-filter');
+    if (!select) return;
+    var currentVal = select.value;
+    select.innerHTML = '<option value="">All Salesmen</option>';
+    
+    var uniqueSalesmen = {};
+    for (var i = 0; i < cachedOrders.length; i++) {
+      if (cachedOrders[i].salesman) {
+        uniqueSalesmen[cachedOrders[i].salesman] = true;
+      }
+    }
+    
+    var salesmenList = Object.keys(uniqueSalesmen);
+    for (var j = 0; j < salesmenList.length; j++) {
+      select.appendChild(new Option(salesmenList[j], salesmenList[j]));
+    }
+    select.value = currentVal;
+  }
+
+  function renderReportsTableData() {
+    var tbody = document.getElementById('rep-table-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    var searchVal = document.getElementById('rep-search-input').value.toLowerCase().trim();
+    var statusFilter = document.getElementById('rep-status-filter').value;
+    var salesmanFilter = document.getElementById('rep-salesman-filter').value;
+
+    var userRoleClean = (currentUser.role || "").trim().toLowerCase();
+    var isAdmin = userRoleClean.indexOf("admin") !== -1;
+
+    var filteredOrders = [];
+    for (var i = 0; i < cachedOrders.length; i++) {
+      var o = cachedOrders[i];
+      if (statusFilter && o.status !== statusFilter) continue;
+      if (salesmanFilter && o.salesman !== salesmanFilter) continue;
+      if (searchVal) {
+        var matchId = o.orderId.toLowerCase().indexOf(searchVal) !== -1;
+        var matchCust = o.customer.toLowerCase().indexOf(searchVal) !== -1;
+        var matchSm = o.salesman.toLowerCase().indexOf(searchVal) !== -1;
+        if (!matchId && !matchCust && !matchSm) continue;
+      }
+      filteredOrders.push(o);
+    }
+
+    if (filteredOrders.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400 italic">No orders match filter criteria</td></tr>';
+      return;
+    }
+
+    for (var k = 0; k < filteredOrders.length; k++) {
+      var o = filteredOrders[k];
+      var tr = document.createElement('tr');
+      tr.className = "hover:bg-slate-50 border-b border-slate-100";
+
+      var statusClass = '';
+      if (o.status === "Pending") statusClass = 'bg-amber-50 text-amber-700 border-amber-200';
+      else if (o.status === "Cancelled") statusClass = 'bg-red-50 text-red-700 border-red-200';
+      else if (o.status === "Packed") statusClass = 'bg-blue-50 text-blue-700 border-blue-200';
+      else if (o.status === "Billed") statusClass = 'bg-indigo-50 text-indigo-700 border-indigo-200';
+      else if (o.status === "Dispatched") statusClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+      else statusClass = 'bg-slate-100 text-slate-600 border-slate-200';
+
+      var statusBadge = '<span class="px-2.5 py-1 text-[9px] md:text-[10px] font-bold rounded-full border ' + statusClass + '">' + o.status + '</span>';
+      
+      var actionBtn = '<div class="flex items-center justify-center gap-1 flex-wrap">';
+      actionBtn += '<button onclick="openRepViewItemsModal(\'' + o.orderId + '\')" class="bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-600 font-bold text-[9px] md:text-[10px] py-1 px-2 rounded transition-colors" title="View Items">👁️ View</button>';
+      
+      if (isAdmin) {
+        actionBtn += '<button onclick="openRepEditOrderModal(\'' + o.orderId + '\')" class="bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 font-bold text-[9px] md:text-[10px] py-1 px-2 rounded transition-colors" title="Edit Order">✏️ Edit</button>';
+        actionBtn += '<button onclick="openRepStatusModal(\'' + o.orderId + '\', \'' + o.status + '\')" class="bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-700 font-bold text-[9px] md:text-[10px] py-1 px-2 rounded transition-colors" title="Change Status">🔄 Status</button>';
+        actionBtn += '<button onclick="adminDeleteOrder(\'' + o.orderId + '\')" class="bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-bold text-[9px] md:text-[10px] py-1 px-2 rounded transition-colors" title="Delete Order">🗑️ Delete</button>';
+      }
+      actionBtn += '</div>';
+
+      tr.innerHTML = '<td class="p-2 md:p-3 font-bold text-slate-800">' + o.orderId + '</td>' +
+                     '<td class="p-2 md:p-3 text-slate-500 whitespace-nowrap hidden sm:table-cell">' + o.date + '</td>' +
+                     '<td class="p-2 md:p-3 font-semibold text-slate-700">' + o.salesman + '</td>' +
+                     '<td class="p-2 md:p-3 font-semibold text-slate-700 max-w-[120px] truncate">' + o.customer + '</td>' +
+                     '<td class="p-2 md:p-3 text-right font-extrabold text-blue-600">₹' + o.totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+                     '<td class="p-2 md:p-3 text-center">' + statusBadge + '</td>' +
+                     '<td class="p-2 md:p-3 text-center whitespace-nowrap">' + actionBtn + '</td>';
+      tbody.appendChild(tr);
+    }
+  }
+
+  // --- VIEW DETAILS MODAL ---
+  window.openRepViewItemsModal = function(orderId) {
+    var order = cachedOrders.find(function(r) { return r.orderId === orderId; });
+    if (!order) return;
+
+    document.getElementById('rep-modal-view-order-id').innerText = orderId;
+    var tbody = document.getElementById('rep-modal-view-items-tbody');
+    tbody.innerHTML = '';
+
+    var items = order.items || [];
+    for (var j = 0; j < items.length; j++) {
+      var item = items[j];
+      var tr = document.createElement('tr');
+      tr.className = "border-b border-slate-100 hover:bg-slate-50";
+      tr.innerHTML = '<td class="p-3 font-semibold text-slate-800">' + item.product + '</td>' +
+                     '<td class="p-3 text-slate-500">' + item.packing + '</td>' +
+                     '<td class="p-3 text-right font-bold text-slate-700">' + item.qty + ' ' + item.unit + '</td>' +
+                     '<td class="p-3 text-right text-slate-500">₹' + item.rate.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+                     '<td class="p-3 text-right font-extrabold text-slate-800">₹' + item.total.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+      tbody.appendChild(tr);
+    }
+
+    document.getElementById('rep-modal-view-grand-total').innerText = "₹" + order.totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+    var remarksContainer = document.getElementById('rep-modal-view-remarks-container');
+    var remarksEl = document.getElementById('rep-modal-view-remarks');
+    if (remarksContainer && remarksEl) {
+      if (order.remarks && order.remarks !== "N/A" && order.remarks.trim() !== "") {
+        remarksEl.innerText = order.remarks;
+        remarksContainer.classList.remove('hidden');
+      } else {
+        remarksContainer.classList.add('hidden');
+      }
+    }
+
+    document.getElementById('rep-modal-view-items').classList.remove('hidden');
+  };
+
+  window.closeRepViewItemsModal = function() {
+    document.getElementById('rep-modal-view-items').classList.add('hidden');
+  };
+
+  // --- ✏️ EDIT ORDER MODAL HANDLERS WITH SEARCHABLE DROPDOWNS ---
+  window.openRepEditOrderModal = function(orderId) {
+    activeRepOrderId = orderId;
+    var order = cachedOrders.find(function(r) { return r.orderId === orderId; });
+    if (!order) return;
+
+    document.getElementById('rep-edit-order-id-title').innerText = orderId;
+    document.getElementById('rep-edit-order-id').value = orderId;
+    document.getElementById('rep-edit-customer').value = order.customer;
+    document.getElementById('rep-edit-salesman').value = order.salesman;
+    document.getElementById('rep-edit-remarks').value = order.remarks || '';
+
+    var tbody = document.getElementById('rep-edit-items-tbody');
+    tbody.innerHTML = '';
+
+    (order.items || []).forEach(function(item) {
+      addEditOrderItemRow(item.product, item.packing, item.qty, item.rate);
+    });
+
+    document.getElementById('rep-modal-edit-order').classList.remove('hidden');
+  };
+
+  window.closeRepEditOrderModal = function() {
+    document.getElementById('rep-modal-edit-order').classList.add('hidden');
+  };
+
+  // Dynamic Row with Product & Packing Searchable Dropdowns
+  window.addEditOrderItemRow = function(prod, pack, qty, rate) {
+    var tbody = document.getElementById('rep-edit-items-tbody');
+    var tr = document.createElement('tr');
+    tr.className = "border-b border-slate-100 edit-item-row";
+
+    tr.innerHTML = 
+      '<td class="p-1.5 relative">' +
+      '  <div class="relative edit-prod-container">' +
+      '    <input type="text" class="edit-item-prod w-full bg-white border border-slate-300 py-1.5 px-2 rounded font-bold text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + (prod || '') + '" placeholder="Search product..." autocomplete="off" required />' +
+      '    <div class="edit-prod-dropdown absolute left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-2xl z-[150] hidden custom-scrollbar text-xs"></div>' +
+      '  </div>' +
+      '</td>' +
+      '<td class="p-1.5 relative">' +
+      '  <div class="relative edit-pack-container">' +
+      '    <input type="text" class="edit-item-pack w-full bg-white border border-slate-300 py-1.5 px-2 rounded text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + (pack || 'Standard') + '" placeholder="Packing..." autocomplete="off" />' +
+      '    <div class="edit-pack-dropdown absolute left-0 right-0 mt-1 max-h-40 overflow-y-auto bg-white border border-slate-200 rounded-lg shadow-2xl z-[150] hidden custom-scrollbar text-xs"></div>' +
+      '  </div>' +
+      '</td>' +
+      '<td class="p-1.5"><input type="number" step="any" inputmode="decimal" class="edit-item-qty w-full bg-white border border-slate-300 py-1.5 px-2 rounded font-bold text-right text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + (qty || 1) + '" required /></td>' +
+      '<td class="p-1.5"><input type="number" step="any" inputmode="decimal" class="edit-item-rate w-full bg-white border border-slate-300 py-1.5 px-2 rounded font-bold text-right text-xs text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500" value="' + (rate || 0) + '" required /></td>' +
+      '<td class="p-1.5 text-center"><button type="button" onclick="this.closest(\'tr\').remove()" class="text-red-500 hover:text-red-700 font-black text-sm">&times;</button></td>';
+
+    tbody.appendChild(tr);
+
+    // Setup interactive search dropdown for Product Name
+    setupRowProductDropdown(tr);
+    // Setup interactive search dropdown for Packing Size
+    setupRowPackingDropdown(tr);
+  };
+
+  function setupRowProductDropdown(tr) {
+    var prodInput = tr.querySelector('.edit-item-prod');
+    var prodDropdown = tr.querySelector('.edit-prod-dropdown');
+
+    function renderList(query) {
+      prodDropdown.innerHTML = '';
+      var term = (query || '').toLowerCase().trim();
+      var products = (formData && formData.products) ? formData.products : [];
+
+      var filtered = products.filter(function(p) {
+        var colF = (p.mainCategory || '').toString().trim().toLowerCase();
+        // Exclude Raw Materials or Packing Materials
+        if (colF === 'raw material' || colF === 'packing') return false;
+        if (!term) return true;
+        return p.name.toLowerCase().includes(term) || (p.id && p.id.toLowerCase().includes(term));
+      });
+
+      if (filtered.length === 0) {
+        prodDropdown.innerHTML = '<div class="p-2 text-slate-400 italic text-[11px] text-center">No matching product</div>';
+        prodDropdown.classList.remove('hidden');
+        return;
+      }
+
+      filtered.forEach(function(p) {
+        var item = document.createElement('div');
+        item.className = 'p-2 hover:bg-blue-50 cursor-pointer font-bold border-b border-slate-100 text-slate-800 text-xs flex justify-between items-center transition-colors';
+        item.innerHTML = '<span>' + p.name + '</span><span class="text-[9px] text-slate-400 uppercase font-semibold">' + (p.under || 'General') + '</span>';
+        
+        item.onmousedown = function(e) {
+          e.preventDefault(); // Prevents input blur before click registers
+          prodInput.value = p.name;
+          prodDropdown.classList.add('hidden');
+        };
+        prodDropdown.appendChild(item);
+      });
+
+      prodDropdown.classList.remove('hidden');
+    }
+
+    prodInput.onfocus = function() { renderList(this.value); };
+    prodInput.oninput = function() { renderList(this.value); };
+    prodInput.onblur = function() {
+      setTimeout(function() { prodDropdown.classList.add('hidden'); }, 200);
+    };
+  }
+
+  function setupRowPackingDropdown(tr) {
+    var packInput = tr.querySelector('.edit-item-pack');
+    var packDropdown = tr.querySelector('.edit-pack-dropdown');
+
+    function renderList(query) {
+      packDropdown.innerHTML = '';
+      var term = (query || '').toLowerCase().trim();
+      var packings = (formData && formData.packings) ? formData.packings : [];
+
+      var filtered = packings.filter(function(pk) {
+        if (!term) return true;
+        return pk.name.toLowerCase().includes(term);
+      });
+
+      if (filtered.length === 0) {
+        packDropdown.classList.add('hidden');
+        return;
+      }
+
+      filtered.forEach(function(pk) {
+        var item = document.createElement('div');
+        item.className = 'p-2 hover:bg-blue-50 cursor-pointer font-bold border-b border-slate-100 text-slate-700 text-xs transition-colors';
+        item.innerText = pk.name;
+        
+        item.onmousedown = function(e) {
+          e.preventDefault();
+          packInput.value = pk.name;
+          packDropdown.classList.add('hidden');
+        };
+        packDropdown.appendChild(item);
+      });
+
+      packDropdown.classList.remove('hidden');
+    }
+
+    packInput.onfocus = function() { renderList(this.value); };
+    packInput.oninput = function() { renderList(this.value); };
+    packInput.onblur = function() {
+      setTimeout(function() { packDropdown.classList.add('hidden'); }, 200);
+    };
+  }
+
+  window.submitAdminEditOrder = function(e) {
+    e.preventDefault();
+    var orderId = document.getElementById('rep-edit-order-id').value;
+    var customer = document.getElementById('rep-edit-customer').value.trim();
+    var salesman = document.getElementById('rep-edit-salesman').value.trim();
+    var remarks = document.getElementById('rep-edit-remarks').value.trim();
+
+    var rows = document.querySelectorAll('.edit-item-row');
+    var items = [];
+
+    rows.forEach(function(r) {
+      var p = r.querySelector('.edit-item-prod').value.trim();
+      var pk = r.querySelector('.edit-item-pack').value.trim();
+      var q = parseFloat(r.querySelector('.edit-item-qty').value.toString().replace(/,/g, '.')) || 0;
+      var rt = parseFloat(r.querySelector('.edit-item-rate').value.toString().replace(/,/g, '.')) || 0;
+
+      if (p && q > 0) {
+        items.push({ product: p, packing: pk || 'Standard', qty: q, rate: rt, unit: 'kg' });
+      }
+    });
+
+    if (items.length === 0) {
+      alert("⚠️ कम से कम एक वैध प्रोडक्ट और मात्रा जोड़ें!");
+      return;
+    }
+
+    closeRepEditOrderModal();
+    showLoader("Saving Order Changes...");
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          showToast("Order updated successfully!");
+          silentLoadAllData();
+        } else {
+          hideLoader();
+          showToast(res.error, "error");
+        }
+      })
+      .withFailureHandler(handleServerFailure)
+      .updateFullOrderAdmin(orderId, {
+        customer: customer,
+        salesman: salesman,
+        remarks: remarks,
+        items: items
+      });
+  };
+
+  // --- 🔄 QUICK STATUS CHANGE MODAL HANDLERS ---
+  window.openRepStatusModal = function(orderId, currentStatus) {
+    activeRepOrderId = orderId;
+    document.getElementById('rep-status-select').value = currentStatus || "Pending";
+    toggleStatusExtraFields(currentStatus || "Pending");
+
+    var godownSelect = document.getElementById('rep-status-godown-select');
+    if (godownSelect) {
+      godownSelect.innerHTML = '';
+      (cachedWarehouse.godowns || []).forEach(function(g) {
+        godownSelect.appendChild(new Option(g.name, g.name));
+      });
+    }
+
+    document.getElementById('rep-status-inv-no').value = '';
+    document.getElementById('rep-status-inv-date').value = new Date().toISOString().split('T')[0];
+
+    document.getElementById('rep-modal-change-status').classList.remove('hidden');
+  };
+
+  window.closeRepStatusModal = function() {
+    document.getElementById('rep-modal-change-status').classList.add('hidden');
+  };
+
+  window.toggleStatusExtraFields = function(status) {
+    var billedFields = document.getElementById('rep-status-billed-fields');
+    var dispatchFields = document.getElementById('rep-status-dispatch-fields');
+
+    if (billedFields) {
+      if (status === "Billed") billedFields.classList.remove('hidden');
+      else billedFields.classList.add('hidden');
+    }
+    if (dispatchFields) {
+      if (status === "Dispatched") dispatchFields.classList.remove('hidden');
+      else dispatchFields.classList.add('hidden');
+    }
+  };
+
+  window.submitRepStatusChange = function() {
+    var status = document.getElementById('rep-status-select').value;
+    var extraData = {};
+
+    if (status === "Billed") {
+      extraData.invoiceNo = document.getElementById('rep-status-inv-no').value.trim();
+      extraData.invoiceDate = document.getElementById('rep-status-inv-date').value;
+      if (!extraData.invoiceNo) {
+        alert("⚠️ कृपया इनवॉइस नंबर दर्ज करें!");
+        return;
+      }
+    } else if (status === "Dispatched") {
+      extraData.godownName = document.getElementById('rep-status-godown-select').value;
+      if (!extraData.godownName) {
+        alert("⚠️ कृपया डिस्पैच गोदाम का चयन करें!");
+        return;
+      }
+    }
+
+    closeRepStatusModal();
+    showLoader("Updating Order Status...");
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res.success) {
+          showToast("Status changed to " + status + "!");
+          silentLoadAllData();
+        } else {
+          hideLoader();
+          showToast(res.error, "error");
+        }
+      })
+      .withFailureHandler(handleServerFailure)
+      .updatePipelineStatus(activeRepOrderId, status, extraData);
+  };
+
+  // --- 🗑️ DELETE ORDER HANDLER ---
+  window.adminDeleteOrder = function(orderId) {
+    if (confirm("⚠️ क्या आप वाकई आर्डर ID: " + orderId + " को हमेशा के लिए डिलीट करना चाहते हैं?")) {
+      showLoader("Deleting Order...");
+      google.script.run
+        .withSuccessHandler(function(res) {
+          if (res.success) {
+            showToast("Order " + orderId + " deleted!");
+            silentLoadAllData();
+          } else {
+            hideLoader();
+            showToast(res.error, "error");
+          }
+        })
+        .withFailureHandler(handleServerFailure)
+        .deleteOrder(orderId);
+    }
+  };
+</script>
