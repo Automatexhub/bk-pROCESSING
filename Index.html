@@ -1,0 +1,1347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>BK Processing ERP</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #f8fafc;
+    }
+    .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col bg-slate-50">
+
+  <!-- Toast Notifier -->
+  <div id="toast-container" class="fixed top-4 right-4 z-[110] flex flex-col gap-2 max-w-sm pointer-events-none"></div>
+
+  <!-- Loading Backdrop -->
+  <div id="global-loader" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex flex-col items-center justify-center text-slate-800 hidden">
+    <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent mb-3"></div>
+    <p id="global-loader-text" class="font-bold text-sm tracking-wide text-blue-800">Processing Server Pipeline...</p>
+  </div>
+
+  <!-- AUTHENTICATION FORM -->
+  <div id="auth-container" class="flex-1 flex items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-200 p-8 space-y-6">
+      <div class="text-center space-y-4">
+        <div class="bg-gradient-to-tr from-blue-700 to-indigo-800 p-6 rounded-2xl shadow-md text-white flex flex-col items-center">
+          <h2 class="text-2xl font-extrabold tracking-tight">BK PROCESSING</h2>
+          <p class="text-[10px] tracking-widest uppercase font-semibold text-blue-100 mt-1">Anala Brand ERP Terminal</p>
+        </div>
+        <h1 class="text-lg font-bold text-slate-800">Authenticate Security Credentials</h1>
+      </div>
+
+      <form id="login-form" class="space-y-4" autocomplete="off">
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Username</label>
+          <select id="username" required class="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"></select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Password</label>
+          <input type="password" id="password" required class="w-full px-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-all shadow-md">
+          Enter Secure ERP
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SYSTEM INTERFACE SHELL -->
+  <div id="app-container" class="flex-1 flex flex-col hidden md:flex-row min-h-0">
+    
+    <!-- RESPONSIVE NAVIGATION BAR (FIXED AT BOTTOM ON MOBILE) -->
+    <aside class="w-full md:w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 order-last md:order-first fixed bottom-0 left-0 right-0 md:relative z-50 shadow-lg md:shadow-none border-t border-slate-800 md:border-t-0">
+      
+      <!-- LOGO HEADER - Desktop Only -->
+      <div class="p-6 border-b border-slate-800 items-center gap-3 hidden md:flex">
+        <div class="bg-blue-600 h-10 w-10 rounded-xl flex items-center justify-center font-bold text-white shadow-md">BK</div>
+        <div>
+          <h1 class="font-extrabold text-sm text-white leading-tight">BK Processing</h1>
+          <p class="text-[9px] text-blue-400 font-bold uppercase tracking-widest leading-none">Anala Brand ERP</p>
+        </div>
+      </div>
+      
+      <!-- NAV INTERFACES LIST -->
+      <nav class="flex flex-row md:flex-col justify-around p-2 md:p-4 gap-1 md:space-y-1 overflow-x-auto custom-scrollbar text-xs md:text-sm font-semibold w-full bg-slate-900">
+        <button onclick="toggleTabs('dashboard')" id="nav-dashboard" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-white bg-slate-800 shadow-sm">
+          <span class="text-base">📊</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Dashboard</span>
+        </button>
+        <button onclick="toggleTabs('new-order')" id="nav-new-order" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+          <span class="text-base">📝</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Place Order</span>
+        </button>
+        <button onclick="toggleTabs('direct-sales')" id="nav-direct-sales" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">🛍️</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Direct Sales</span>
+        </button>
+        <button onclick="toggleTabs('challan')" id="nav-challan" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+          <span class="text-base">🚚</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Order Management</span>
+        </button>
+        <button onclick="toggleTabs('expenses')" id="nav-expenses" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white">
+          <span class="text-base">💰</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Expenses</span>
+        </button>
+        <button onclick="toggleTabs('warehouse')" id="nav-warehouse" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">📦</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Inventory</span>
+        </button>
+        <button onclick="toggleTabs('attendance')" id="nav-attendance" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">📅</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Route</span>
+        </button>
+        <button onclick="toggleTabs('reports')" id="nav-reports" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">📊</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Reports</span>
+        </button>
+        <button onclick="toggleTabs('outstanding')" id="nav-outstanding" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">💸</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Outstanding</span>
+        </button>
+        <button onclick="toggleTabs('master-mgmt')" id="nav-master-mgmt" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">⚙️</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Master Mgmt</span>
+        </button>
+        <button onclick="toggleTabs('users')" id="nav-users" class="flex-1 md:w-full flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-3 px-2 py-2 md:px-4 md:py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white hidden">
+          <span class="text-base">👤</span>
+          <span class="text-[10px] md:text-sm whitespace-nowrap">Users</span>
+        </button>
+      </nav>
+
+      <!-- LOGOUT FOOTER - Desktop Only -->
+      <div class="p-4 border-t border-slate-800 bg-slate-950 flex flex-col gap-3 hidden md:flex">
+        <div class="text-xs">
+          <p id="user-display-name" class="font-bold text-white truncate"></p>
+          <p id="user-display-role" class="text-blue-400 font-bold uppercase text-[9px] tracking-widest mt-0.5"></p>
+        </div>
+        <button id="logout-btn" class="w-full bg-slate-800 hover:bg-red-900/40 hover:text-red-300 text-slate-300 font-semibold py-2.5 rounded-lg border border-slate-700 text-xs transition-colors flex items-center justify-center gap-2">
+          Logout Securely
+        </button>
+      </div>
+    </aside>
+
+    <!-- RIGHT CONTENT INTERFACE -->
+    <main class="flex-1 flex flex-col min-w-0 bg-slate-50 overflow-y-auto">
+      <header class="h-16 border-b border-slate-200 px-4 md:px-6 flex items-center justify-between shrink-0 bg-white shadow-sm sticky top-0 z-40">
+        <h2 id="view-title" class="font-bold text-slate-700 text-sm md:text-base">Dashboard</h2>
+        
+        <div class="flex items-center gap-2 md:gap-3">
+          <!-- 🔔 SOUND & TAB FLASHING ALERTS TOGGLE BUTTON -->
+          <button id="btn-enable-notifications" onclick="requestNotificationPermission()" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition-all" title="Enable Sound & Tab Flashing Alerts">
+            🔔 <span class="hidden sm:inline">Alerts Off</span>
+          </button>
+
+          <!-- 🎧 HELPLINE & SUPPORT BUTTON -->
+          <button onclick="openSupportModal()" class="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs px-3 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 transition-all transform hover:scale-105">
+            <span>🎧 Helpline / सहायता</span>
+            <span class="hidden sm:inline bg-white/20 px-1.5 py-0.5 rounded text-[10px]">9216457535</span>
+          </button>
+
+          <button onclick="silentLoadAllData(); showToast('ERP Database Sync Complete!');" class="text-blue-600 hover:text-blue-700 font-bold text-xs flex items-center gap-0.5 bg-blue-50 hover:bg-blue-100 px-2.5 py-1.5 rounded-lg border border-blue-200" title="Force Sync Data">
+            🔄 <span class="hidden md:inline">Sync</span>
+          </button>
+          <span id="mobile-user-name" class="md:hidden text-slate-700 font-extrabold text-xs border-r border-slate-200 pr-2 mr-1 max-w-[120px] truncate"></span>
+          <button onclick="document.getElementById('logout-btn').click();" class="md:hidden bg-red-50 text-red-600 border border-red-200 font-bold text-[10px] px-2 py-1.5 rounded-lg transition-colors">
+            🚪 Logout
+          </button>
+        </div>
+      </header>
+
+      <!-- ADDED pb-24 TO PREVENT CONTENT OVERLAPPING WITH FIXED BOTTOM TABS -->
+      <div class="flex-1 p-3 md:p-6 pb-24 md:pb-6 space-y-6">
+        <div id="view-dashboard"><?!= include('Dashboard'); ?></div>
+        <div id="view-new-order" class="hidden"><?!= include('OrderBook'); ?></div>
+        <div id="view-direct-sales" class="hidden"><?!= include('DirectSales'); ?></div>
+        <div id="view-challan" class="hidden"><?!= include('DeliveryChallan'); ?></div>
+        <div id="view-expenses" class="hidden"><?!= include('Expenses'); ?></div>
+        <div id="view-warehouse" class="hidden"><?!= include('Warehouse'); ?></div>
+        <div id="view-attendance" class="hidden"><?!= include('Attendance'); ?></div>
+        <div id="view-reports" class="hidden"><?!= include('Reports'); ?></div>
+        <div id="view-outstanding" class="hidden"><?!= include('Outstanding'); ?></div>
+        <div id="view-master-mgmt" class="hidden"><?!= include('MasterMgmt'); ?></div>
+        <div id="view-users" class="hidden"><?!= include('Users'); ?></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- DAILY ATTENDANCE ROUTE CHECK-IN MODAL -->
+  <div id="modal-attendance" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xl">
+      <h3 class="font-extrabold text-slate-800 text-base">📅 Daily Field Check-in</h3>
+      <p class="text-xs text-slate-500">Please declare your target operational route area for today before accessing the ERP.</p>
+      <form id="form-attendance-checkin" class="space-y-3 text-xs" autocomplete="off">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase mb-1">Select Duty Status</label>
+          <select id="att-status" required class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg text-slate-800 focus:outline-none">
+            <option value="Active Duty">Active Duty 💼</option>
+            <option value="Holiday">Holiday 🛌</option>
+          </select>
+        </div>
+        <div>
+          <label class="block font-bold text-slate-500 uppercase mb-1">Target Route / Area Focus</label>
+          <input type="text" id="att-route" placeholder="e.g. Ahmedabad Bypass Yard" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg text-slate-800 focus:outline-none" />
+        </div>
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg shadow-sm">
+          Confirm Check-in
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- DYNAMIC QUICK REGISTER CUSTOMER MODAL WITH GST FIELD -->
+  <div id="modal-quick-customer" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xl">
+      <h3 class="font-extrabold text-slate-800 text-sm uppercase">➕ Quick Add Customer Party</h3>
+      <div class="space-y-3 text-xs text-left">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase mb-1">Customer Party Name</label>
+          <input type="text" id="qc-name" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-500 uppercase mb-1">Phone Number</label>
+            <input type="text" id="qc-phone" placeholder="e.g. 9876543210" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-500 uppercase mb-1">GST Number</label>
+            <input type="text" id="qc-gst" placeholder="e.g. 24AAAAA0000A1Z5" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 font-bold uppercase focus:outline-none" />
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-500 uppercase mb-1">City/Area Address</label>
+            <input type="text" id="qc-city" placeholder="e.g. Dahod" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg text-slate-800 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-500 uppercase mb-1">State</label>
+            <select id="qc-state" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg text-slate-800 focus:outline-none">
+              <option value="Gujarat" selected>Gujarat</option>
+              <option value="Madhya Pradesh">Madhya Pradesh</option>
+              <option value="Rajasthan">Rajasthan</option>
+              <option value="Maharashtra">Maharashtra</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button onclick="closeQuickCustomerModal()" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 px-4 rounded-lg">Cancel</button>
+          <button onclick="submitQuickCustomer()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm">Save Party</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DYNAMIC QUICK REGISTER SPICE PRODUCT MODAL -->
+  <div id="modal-quick-product" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xl">
+      <h3 class="font-extrabold text-slate-800 text-sm uppercase">➕ Quick Add Spice Product</h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase mb-1">Spice Product Name</label>
+          <input type="text" id="qp-name" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none" />
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="block font-bold text-slate-500 uppercase mb-1">Under (Category)</label>
+            <input type="text" id="qp-under" placeholder="e.g. Turmeric" class="w-full bg-white border border-slate-300 py-2 px-3 rounded-lg text-slate-800 focus:outline-none" />
+          </div>
+          <div>
+            <label class="block font-bold text-slate-500 uppercase mb-1">Base Unit</label>
+            <select id="qp-unit" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg text-slate-800 focus:outline-none">
+              <option value="KG">KG (Kilogram)</option>
+              <option value="Bag">Bag (Bags)</option>
+              <option value="G">G (Gram)</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button onclick="closeQuickProductModal()" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 px-4 rounded-lg">Cancel</button>
+          <button onclick="submitQuickProduct()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm">Save Spice</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DYNAMIC QUICK REGISTER PACKING MODAL -->
+  <div id="modal-quick-packing" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-sm rounded-2xl border border-slate-200 p-5 space-y-4 shadow-xl">
+      <h3 class="font-extrabold text-slate-800 text-sm uppercase">➕ Quick Add Packing Type</h3>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase mb-1">Packing Name</label>
+          <input type="text" id="qpk-name" placeholder="e.g. 250g Pouch" class="w-full bg-white border border-slate-300 py-2.5 px-3 rounded-lg text-slate-800 focus:outline-none" />
+        </div>
+        <div class="flex gap-2 pt-2">
+          <button onclick="closeQuickPackingModal()" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 px-4 rounded-lg">Cancel</button>
+          <button onclick="submitQuickPacking()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-sm">Save Packing</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🌟 GLOBAL VIEW DETAILS MODAL -->
+  <div id="modal-view-items" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[120] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-lg rounded-2xl border border-slate-200 p-6 space-y-4 shadow-xl text-left">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <h3 class="font-extrabold text-slate-800 text-sm uppercase flex items-center gap-1.5">
+          📦 Order Items Details (<span id="modal-view-order-id" class="text-blue-600 font-bold"></span>)
+        </h3>
+        <button onclick="closeViewItemsModal()" class="text-slate-400 hover:text-slate-600 text-lg font-black">&times;</button>
+      </div>
+
+      <!-- 🏢 CUSTOMER PARTY NAME & SALESMAN HEADER BANNER -->
+      <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-xl text-xs text-left space-y-1">
+        <div class="flex justify-between items-center flex-wrap gap-2">
+          <div>
+            <span class="text-slate-400 font-bold uppercase text-[9px] block">Customer Party Name (ग्राहक पार्टी)</span>
+            <span id="modal-view-customer-party-name" class="font-black text-slate-900 text-sm block"></span>
+          </div>
+          <div class="text-right">
+            <span class="text-slate-400 font-bold uppercase text-[9px] block">Booked By Salesman</span>
+            <span id="modal-view-salesman-name" class="font-extrabold text-blue-700 text-xs block"></span>
+          </div>
+        </div>
+      </div>
+      
+      <div class="overflow-x-auto max-h-60 custom-scrollbar">
+        <table class="min-w-full divide-y divide-slate-100 text-xs text-left">
+          <thead class="bg-slate-50 text-slate-500 font-bold sticky top-0">
+            <tr>
+              <th class="p-3">Product Name</th>
+              <th class="p-3">Packing Type</th>
+              <th class="p-3 text-right">Quantity</th>
+              <th class="p-3 text-right">Rate</th>
+              <th class="p-3 text-right font-extrabold">Total</th>
+            </tr>
+          </thead>
+          <tbody id="modal-view-items-tbody" class="divide-y divide-slate-100 text-slate-700 bg-white"></tbody>
+        </table>
+      </div>
+      
+      <div id="modal-view-remarks-container" class="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-1 hidden">
+        <strong class="text-slate-400 font-bold uppercase text-[9px] block">Order Remarks / Shipping Notes (कस्टमर रिमार्क्स):</strong>
+        <p id="modal-view-remarks" class="font-semibold text-slate-700 whitespace-pre-wrap"></p>
+      </div>
+
+      <div class="flex justify-between items-center text-xs pt-2 font-bold text-slate-800 border-t border-slate-100">
+        <span>Grand Total:</span>
+        <span id="modal-view-grand-total" class="text-blue-600 text-sm">₹0.00</span>
+      </div>
+      
+      <div class="flex gap-2">
+        <button onclick="closeViewItemsModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-lg text-xs shadow-sm transition-colors">
+          Close Details
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎧 HELPLINE & SUPPORT CHAT MODAL -->
+  <div id="modal-support-chat" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-[160] flex items-center justify-center p-4 hidden">
+    <div class="bg-white w-full max-w-md rounded-2xl border border-slate-200 p-6 space-y-4 shadow-2xl text-left relative">
+      
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-2">
+          <div class="bg-emerald-100 text-emerald-600 p-2 rounded-xl text-lg font-black">🎧</div>
+          <div>
+            <h3 class="font-extrabold text-slate-800 text-base">ERP Help & Support Center</h3>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Direct Assistance Terminal</p>
+          </div>
+        </div>
+        <button onclick="closeSupportModal()" class="text-slate-400 hover:text-slate-600 text-xl font-black">&times;</button>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="grid grid-cols-2 gap-3">
+        <a href="tel:9216457535" class="bg-blue-50 hover:bg-blue-100 border border-blue-200 p-3 rounded-xl flex flex-col items-center justify-center text-center transition-all group">
+          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">📞</span>
+          <span class="text-xs font-bold text-blue-700">Direct Phone Call</span>
+          <span class="text-[10px] text-blue-500 font-extrabold mt-0.5">9216457535</span>
+        </a>
+
+        <a href="https://wa.me/919216457535?text=Hello%20BK%20ERP%20Support,%20I%20need%20assistance." target="_blank" class="bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 p-3 rounded-xl flex flex-col items-center justify-center text-center transition-all group">
+          <span class="text-2xl mb-1 group-hover:scale-110 transition-transform">💬</span>
+          <span class="text-xs font-bold text-emerald-700">WhatsApp Chat</span>
+          <span class="text-[10px] text-emerald-600 font-extrabold mt-0.5">Online Support</span>
+        </a>
+      </div>
+
+      <!-- Chat / Problem Report Box -->
+      <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-xl space-y-2.5">
+        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center justify-between">
+          <span>💬 Report Issue / Chat (समस्या लिखें)</span>
+          <span class="text-[9px] text-slate-400 font-bold">Direct Support Inbox</span>
+        </label>
+        <textarea id="support-issue-text" rows="3" class="w-full bg-white border border-slate-300 p-2.5 rounded-lg text-xs text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500" placeholder="Type your issue or query here... (अपनी समस्या यहाँ लिखें)"></textarea>
+        
+        <button onclick="sendSupportProblem()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-lg text-xs shadow-sm flex items-center justify-center gap-2 transition-all">
+          <span>🚀 Send Problem via WhatsApp Chat</span>
+        </button>
+      </div>
+
+      <div class="text-center pt-1">
+        <button onclick="closeSupportModal()" class="text-xs font-bold text-slate-400 hover:text-slate-600">Close Window</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- APPLICATION JAVASCRIPT -->
+  <script>
+    let currentUser = null;
+    let cachedOrders = [];
+    let cachedAttendance = [];
+    let cachedExpenses = []; 
+    let cachedUsersList = []; 
+    let cachedWarehouse = { godowns: [], balance: [], ledger: [] }; 
+    let formData = { customers: [], products: [], packings: [], salesmen: [], mappedCustomers: [] };
+    let orderBasket = [];
+    let isLocationDetected = false;
+    let autoRefreshInterval = null;
+    let currentGeoPayload = { lat: 0, lng: 0, source: 'N/A', errorMsg: '' };
+
+    // ========================================================
+    // 🔔 REAL-TIME SOUND & TAB FLASHING ALERT SYSTEM (100% GAS COMPATIBLE)
+    // ========================================================
+    let lastPackedCount = -1;
+    let lastPendingCount = -1;
+    let lastBilledCount = -1;
+    let originalDocumentTitle = document.title;
+    let titleBlinkInterval = null;
+    let alertsEnabled = false;
+    let isSyncing = false; // ⚡ OVERLAPPING LOCK FLAG TO PREVENT FREEZING
+    const alertAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+
+    function startAutoRefresh() {
+      stopAutoRefresh();
+      autoRefreshInterval = setInterval(function() {
+        if (!isSyncing) {
+          silentLoadAllData();
+        }
+      }, 30000); // ⚡ 30 seconds interval prevents server overload & hanging
+    }
+
+    function stopAutoRefresh() {
+      if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+      }
+    }
+
+    function applyFormConfigUI() {
+      if (window.formSettings) {
+        console.log("ERP Form configurations applied successfully:", window.formSettings);
+      }
+    }
+
+    window.onload = function() {
+      updateNotificationButtonUI(alertsEnabled);
+
+      const cachedUsersListStr = SafeStorage.getItem("bk_erp_users_list_cache");
+      if (cachedUsersListStr) {
+        try {
+          const cachedUsersList = JSON.parse(cachedUsersListStr);
+          populateLoginDropdown(cachedUsersList);
+        } catch (e) {}
+      }
+
+      const persistedUser = SafeStorage.getItem("bk_anala_session");
+      if (persistedUser) {
+        try {
+          currentUser = JSON.parse(persistedUser);
+          bootSystemDashboard();
+          
+          google.script.run
+            .withSuccessHandler(function(usersList) {
+              SafeStorage.setItem("bk_erp_users_list_cache", JSON.stringify(usersList));
+              populateLoginDropdown(usersList);
+            })
+            .getSalesmenUsernames();
+        } catch (e) {
+          SafeStorage.removeItem("bk_anala_session");
+          loadLoginPageFlow();
+        }
+      } else {
+        loadLoginPageFlow();
+      }
+    };
+
+    function loadLoginPageFlow() {
+      const hasCache = !!SafeStorage.getItem("bk_erp_users_list_cache");
+      if (!hasCache) {
+        showLoader("Engaging cloud bootloader...");
+      }
+      google.script.run
+        .withSuccessHandler(function(usersList) {
+          SafeStorage.setItem("bk_erp_users_list_cache", JSON.stringify(usersList));
+          populateLoginDropdown(usersList);
+          hideLoader();
+        })
+        .withFailureHandler(handleServerFailure)
+        .getSalesmenUsernames();
+    }
+    
+    function handleServerFailure(error) {
+      hideLoader();
+      console.error("Critical Server Error: ", error);
+      showToast(error.message || error || "Server pipeline communication failed.", "error");
+    }
+
+    function renderOrdersTerminal() {
+      console.log("Orders system synchronized successfully.");
+    }
+
+    function initDropdownComponents() {
+      const custInput = document.getElementById('customer-search-input');
+      const custList = document.getElementById('customer-dropdown-list');
+      
+      if (custInput && custList) {
+        custInput.addEventListener('focus', () => {
+          renderCustomerOptions(custInput.value);
+          custList.classList.remove('hidden');
+        });
+        custInput.addEventListener('input', (e) => renderCustomerOptions(e.target.value));
+        document.addEventListener('click', (e) => {
+          if (!custInput.contains(e.target) && !custList.contains(e.target)) {
+            custList.classList.add('hidden');
+          }
+        });
+      }
+      
+      function renderCustomerOptions(search = "") {
+        custList.innerHTML = "";
+        const term = search.toLowerCase().trim();
+        const filtered = (formData.customers || []).filter(c => 
+          c.name.toLowerCase().includes(term) || 
+          c.city.toLowerCase().includes(term) || 
+          c.id.toLowerCase().includes(term)
+        );
+        
+        filtered.forEach(c => {
+          const div = document.createElement('div');
+          div.className = "p-3 hover:bg-slate-100 cursor-pointer text-xs border-b border-slate-100 text-slate-700 transition-colors";
+          div.innerText = c.name + " - " + c.city + " (" + c.id + ")";
+          div.addEventListener('click', () => {
+            custInput.value = c.name + " - " + c.city;
+            custInput.setAttribute('data-selected-id', c.id);
+            custList.classList.add('hidden');
+          });
+          custList.appendChild(div);
+        });
+
+        if (search.trim() !== "") {
+          const addDiv = document.createElement('div');
+          addDiv.className = "p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-xs font-bold text-blue-600 border-b border-slate-100 transition-colors flex items-center gap-1";
+          addDiv.innerHTML = "➕ Register New Party: \"" + search + "\"";
+          addDiv.addEventListener('click', () => {
+            custList.classList.add('hidden');
+            openQuickCustomerModal(search);
+          });
+          custList.appendChild(addDiv);
+        } else {
+          const addDiv = document.createElement('div');
+          addDiv.className = "p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-xs font-bold text-blue-600 border-b border-slate-100 transition-colors flex items-center gap-1";
+          addDiv.innerHTML = "➕ Register New Party...";
+          addDiv.addEventListener('click', () => {
+            custList.classList.add('hidden');
+            openQuickCustomerModal("");
+          });
+          custList.appendChild(addDiv);
+        }
+      }
+
+      const prodInput = document.getElementById('product-search-input');
+      const prodList = document.getElementById('product-dropdown-list');
+      
+      if (prodInput && prodList) {
+        prodInput.addEventListener('focus', () => {
+          renderProductOptions(prodInput.value);
+          prodList.classList.remove('hidden');
+        });
+        prodInput.addEventListener('input', (e) => renderProductOptions(e.target.value));
+        document.addEventListener('click', (e) => {
+          if (!prodInput.contains(e.target) && !prodList.contains(e.target)) {
+            prodList.classList.add('hidden');
+          }
+        });
+      }
+      
+      function renderProductOptions(search = "") {
+        prodList.innerHTML = "";
+        const term = search.toLowerCase().trim();
+        let filtered = (formData.products || []).filter(p => 
+          p.name.toLowerCase().includes(term) || 
+          p.id.toLowerCase().includes(term)
+        );
+        
+        filtered.sort((a, b) => a.name.localeCompare(b.name, 'en', { numeric: true, sensitivity: 'base' }));
+
+        filtered.forEach(p => {
+          const div = document.createElement('div');
+          div.className = "p-3 hover:bg-slate-100 cursor-pointer text-xs border-b border-slate-100 text-slate-800 font-bold transition-colors";
+          div.innerText = p.name;
+          div.addEventListener('click', () => {
+            prodInput.value = p.name;
+            prodInput.setAttribute('data-selected-id', p.id);
+            prodInput.dataset.selectedUnit = p.unit || "KG";
+            document.getElementById('item-qty-unit-label').innerText = "(" + (p.unit || "KG") + ")";
+            document.getElementById('item-rate').value = "";
+            prodList.classList.add('hidden');
+          });
+          prodList.appendChild(div);
+        });
+
+        if (search.trim() !== "") {
+          const addDiv = document.createElement('div');
+          addDiv.className = "p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-xs font-bold text-blue-600 border-b border-slate-100 transition-colors flex items-center gap-1";
+          addDiv.innerHTML = "➕ Add New Product: \"" + search + "\"";
+          addDiv.addEventListener('click', () => {
+            prodList.classList.add('hidden');
+            openQuickProductModal(search);
+          });
+          prodList.appendChild(addDiv);
+        } else {
+          const addDiv = document.createElement('div');
+          addDiv.className = "p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-xs font-bold text-blue-600 border-b border-slate-100 transition-colors flex items-center gap-1";
+          addDiv.innerHTML = "➕ Add New Product...";
+          addDiv.addEventListener('click', () => {
+            prodList.classList.add('hidden');
+            openQuickProductModal("");
+          });
+          prodList.appendChild(addDiv);
+        }
+      }
+
+      const packInput = document.getElementById('packing-search-input');
+      const packList = document.getElementById('packing-dropdown-list');
+      
+      if (packInput && packList) {
+        packInput.addEventListener('focus', () => {
+          renderPackingOptions(packInput.value);
+          packList.classList.remove('hidden');
+        });
+        packInput.addEventListener('input', (e) => renderPackingOptions(e.target.value));
+        document.addEventListener('click', (e) => {
+          if (!packInput.contains(e.target) && !packList.contains(e.target)) {
+            packList.classList.add('hidden');
+          }
+        });
+      }
+      
+      function renderPackingOptions(search = "") {
+        packList.innerHTML = "";
+        const term = search.toLowerCase().trim();
+        const filtered = (formData.packings || []).filter(pk => 
+          pk.name.toLowerCase().includes(term) || 
+          pk.id.toLowerCase().includes(term)
+        );
+        
+        filtered.forEach(pk => {
+          const div = document.createElement('div');
+          div.className = "p-3 hover:bg-slate-100 cursor-pointer text-xs border-b border-slate-100 text-slate-700 transition-colors";
+          div.innerText = pk.name;
+          div.addEventListener('click', () => {
+            packInput.value = pk.name;
+            packInput.setAttribute('data-selected-id', pk.id);
+            packList.classList.add('hidden');
+          });
+          packList.appendChild(div);
+        });
+
+        if (search.trim() !== "") {
+          const addDiv = document.createElement('div');
+          addDiv.className = "p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-xs font-bold text-blue-600 border-b border-slate-100 transition-colors flex items-center gap-1";
+          addDiv.innerHTML = "➕ Add New Packing: \"" + search + "\"";
+          addDiv.addEventListener('click', () => {
+            packList.classList.add('hidden');
+            openQuickPackingModal(search);
+          });
+          packList.appendChild(addDiv);
+        } else {
+          const addDiv = document.createElement('div');
+          addDiv.className = "p-3 bg-blue-50 hover:bg-blue-100 cursor-pointer text-xs font-bold text-blue-600 border-b border-slate-100 transition-colors flex items-center gap-1";
+          addDiv.innerHTML = "➕ Add New Packing...";
+          addDiv.addEventListener('click', () => {
+            packList.classList.add('hidden');
+            openQuickPackingModal("");
+          });
+          packList.appendChild(addDiv);
+        }
+      }
+    }
+
+    function populateLoginDropdown(usersList) {
+      const select = document.getElementById('username');
+      if (!select) return;
+      select.innerHTML = '<option value="">-- Choose User Profile --</option>';
+      (usersList || []).forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user.username;
+        opt.innerText = `${user.name} (${user.username})`;
+        select.appendChild(opt);
+      });
+    }
+
+    function showLoader(message = "Processing...") {
+      document.getElementById('global-loader-text').innerText = message;
+      document.getElementById('global-loader').classList.remove('hidden');
+    }
+    function hideLoader() {
+      document.getElementById('global-loader').classList.add('hidden');
+    }
+
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `p-4 rounded-xl shadow-lg border text-xs font-semibold transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2 bg-white border-slate-200 shadow-md pointer-events-auto`;
+      
+      if (type === 'success') {
+        toast.className += ' text-emerald-600';
+        toast.innerHTML = `<span>✅ ${message}</span>`;
+      } else {
+        toast.className += ' text-red-600';
+        toast.innerHTML = `<span>⚠️ ${message}</span>`;
+      }
+      
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 50);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    document.getElementById('login-form').onsubmit = function(e) {
+      e.preventDefault();
+      showLoader("Authenticating account credentials...");
+      const userVal = document.getElementById('username').value.trim();
+      const passVal = document.getElementById('password').value;
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          if (response.success) {
+            currentUser = response;
+            SafeStorage.setItem("bk_anala_session", JSON.stringify(currentUser));
+            showToast(`Security Authentication Successful!`);
+            bootSystemDashboard();
+          } else {
+            hideLoader();
+            showToast(response.message, 'error');
+          }
+        })
+        .withFailureHandler(handleServerFailure)
+        .checkLogin(userVal, passVal);
+    };
+
+    document.getElementById('logout-btn').onclick = function() {
+      if (typeof stopAutoRefresh === "function") {
+        stopAutoRefresh();
+      }
+      SafeStorage.removeItem("bk_anala_session");
+      currentUser = null;
+      document.getElementById('app-container').classList.add('hidden');
+      document.getElementById('auth-container').classList.remove('hidden');
+      showToast("Profile securely logged out.");
+    };
+
+    document.getElementById('form-attendance-checkin').onsubmit = function(e) {
+      e.preventDefault();
+      const status = document.getElementById('att-status').value;
+      const route = document.getElementById('att-route').value.trim() || "Holiday";
+      
+      showLoader("Registering check-in data...");
+      google.script.run
+        .withSuccessHandler(res => {
+          hideLoader();
+          if (res.success) {
+            showToast("Check-in registered successfully!");
+            const todayStr = new Date().toISOString().split('T')[0];
+            SafeStorage.setItem(`attendance_${currentUser.username}_${todayStr}`, "checked_in");
+            document.getElementById('modal-attendance').classList.add('hidden');
+            silentLoadAllData();
+          } else {
+            showToast(res.error, "error");
+          }
+        })
+        .withFailureHandler(handleServerFailure)
+        .saveAttendance(currentUser.name, status, route);
+    };
+
+    function bootSystemDashboard() {
+      document.getElementById('auth-container').classList.add('hidden');
+      document.getElementById('app-container').classList.remove('hidden');
+      
+      document.getElementById('user-display-name').innerText = currentUser.name || "User Profile";
+      document.getElementById('user-display-role').innerText = currentUser.role || "Salesperson";
+
+      const navMap = {
+        'dashboard': document.getElementById('nav-dashboard'),
+        'new-order': document.getElementById('nav-new-order'),
+        'direct-sales': document.getElementById('nav-direct-sales'),
+        'challan': document.getElementById('nav-challan'),
+        'expenses': document.getElementById('nav-expenses'),
+        'warehouse': document.getElementById('nav-warehouse'),
+        'attendance': document.getElementById('nav-attendance'),
+        'reports': document.getElementById('nav-reports'),
+        'outstanding': document.getElementById('nav-outstanding'),
+        'master-mgmt': document.getElementById('nav-master-mgmt'),
+        'users': document.getElementById('nav-users')
+      };
+
+      const mobUserEl = document.getElementById('mobile-user-name');
+      if (mobUserEl) {
+        mobUserEl.innerText = currentUser.name || "";
+      }
+
+      for (let key in navMap) {
+        if (navMap[key]) navMap[key].classList.add('hidden');
+      }
+
+      const userRoleClean = (currentUser.role || "").trim().toLowerCase();
+      const isAdmin = userRoleClean.indexOf("admin") !== -1 && userRoleClean.indexOf("manager") === -1 && userRoleClean.indexOf("accounts") === -1;
+      
+      let allowedTabsStr = (currentUser.allowedTabs || "").trim();
+
+      if (isAdmin || allowedTabsStr.toLowerCase() === "all" || !allowedTabsStr) {
+        if (isAdmin) {
+          allowedTabsStr = "dashboard,new-order,direct-sales,challan,expenses,warehouse,attendance,reports,outstanding,master-mgmt,users";
+        } else if (userRoleClean.indexOf("manager") !== -1) {
+          allowedTabsStr = "dashboard,new-order,direct-sales,challan,expenses,warehouse";
+        } else if (userRoleClean.indexOf("accounts") !== -1) {
+          allowedTabsStr = "dashboard,direct-sales,challan,expenses,outstanding";
+        } else if (userRoleClean.indexOf("salesman") !== -1) {
+          allowedTabsStr = "dashboard,new-order,expenses,attendance" + (currentUser.allowOutstanding ? ",outstanding" : "");
+        }
+      }
+
+      const allowedList = allowedTabsStr.split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+
+      allowedList.forEach(tabId => {
+        if (navMap[tabId]) {
+          if (tabId === 'users' && !userRoleClean.includes('admin')) {
+            return;
+          }
+          navMap[tabId].classList.remove('hidden');
+        }
+      });
+
+      if (navMap['dashboard']) navMap['dashboard'].classList.remove('hidden');
+
+      const cachedPayloadStr = SafeStorage.getItem("bk_erp_payload_cache");
+      let hasCache = false;
+      if (cachedPayloadStr) {
+        try {
+          const cachedPayload = JSON.parse(cachedPayloadStr);
+          applySystemPayload(cachedPayload);
+          hasCache = true;
+        } catch (e) {
+          console.warn("Failed to parse cached payload:", e);
+        }
+      }
+
+      if (!hasCache) {
+        showLoader("Assembling complete system payload...");
+      }
+
+      google.script.run
+        .withSuccessHandler(function(payload) {
+          if (!payload) {
+            hideLoader();
+            if (!hasCache) showToast("Server database payload came back empty.", "error");
+            return;
+          }
+          SafeStorage.setItem("bk_erp_payload_cache", JSON.stringify(payload));
+          applySystemPayload(payload);
+          hideLoader();
+          startAutoRefresh();
+        })
+        .withFailureHandler(function(err) {
+          hideLoader();
+          if (!hasCache) handleServerFailure(err);
+        })
+        .getBootPayload(currentUser.name, currentUser.role);
+    }
+
+    function applySystemPayload(payload) {
+      formData = payload.formData || { customers: [], products: [], packings: [] };
+      if (formData.customers) {
+        formData.mappedCustomers = formData.customers.map(c => ({ id: c.id, name: c.name + " - " + c.city }));
+      }
+      cachedOrders = payload.orders || [];
+      cachedExpenses = payload.expenses || [];
+      cachedAttendance = payload.attendance || [];
+      cachedWarehouse = payload.warehouse || { godowns: [], balance: [], ledger: [] };
+      cachedReturnsList = payload.returns || [];
+
+      window.formSettings = formData.formSettings || { customerRequired: true, packingRequired: false, quantityRequired: true, rateRequired: true, remarksRequired: false };
+      
+      initDropdownComponents();
+      checkAttendanceWorkflow();
+      applyFormConfigUI();
+      renderDashboardModule();
+      renderOrdersTerminal();
+      renderExpensesTerminal();
+      renderChallanPipeline();
+
+      // 🔔 Check role notifications on payload update
+      checkRoleBasedNotifications(cachedOrders);
+    }
+
+    function silentLoadAllData() {
+      if (!currentUser || isSyncing) return;
+      isSyncing = true; // ⚡ LOCK SYNC TO PREVENT FREEZING
+
+      google.script.run
+        .withSuccessHandler(function(payload) {
+          isSyncing = false; // ⚡ UNLOCK SYNC
+          if (!payload) return;
+          cachedOrders = payload.orders || [];
+          cachedExpenses = payload.expenses || [];
+          cachedAttendance = payload.attendance || [];
+          cachedWarehouse = payload.warehouse || { godowns: [], balance: [], ledger: [] };
+          cachedReturnsList = payload.returns || [];
+
+          SafeStorage.setItem("bk_erp_payload_cache", JSON.stringify(payload));
+
+          renderDashboardModule();
+          renderOrdersTerminal();
+          renderExpensesTerminal();
+          renderChallanPipeline();
+          
+          // 🔔 Real-time check for new actionable items
+          checkRoleBasedNotifications(cachedOrders);
+
+          hideLoader();
+        })
+        .withFailureHandler(function(err) {
+          isSyncing = false; // ⚡ UNLOCK SYNC ON ERROR
+          hideLoader();
+          handleServerFailure(err);
+        })
+        .getBootPayload(currentUser.name, currentUser.role);
+    }
+
+    function toggleTabs(activeTab) {
+      const views = ['dashboard', 'new-order', 'direct-sales', 'challan', 'expenses', 'warehouse', 'attendance', 'reports', 'outstanding', 'master-mgmt', 'users'];
+      views.forEach(v => {
+        const viewEl = document.getElementById('view-' + v);
+        const navEl = document.getElementById('nav-' + v);
+        if (viewEl) viewEl.classList.add('hidden');
+        if (navEl) {
+          const isCurrentlyHidden = navEl.classList.contains('hidden');
+          navEl.className = "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-slate-400 hover:bg-slate-800 hover:text-white" + (isCurrentlyHidden ? " hidden" : "");
+        }
+      });
+
+      const activeView = document.getElementById('view-' + activeTab);
+      const activeNav = document.getElementById('nav-' + activeTab);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeNav) {
+        const isCurrentlyHidden = activeNav.classList.contains('hidden');
+        activeNav.className = "w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all text-white bg-slate-800 shadow-sm" + (isCurrentlyHidden ? " hidden" : "");
+      }
+
+      const titleMap = {
+        'dashboard': 'Analytics Dashboard',
+        'new-order': 'New Order Terminal',
+        'direct-sales': 'Direct Store Sale & Live Outflow',
+        'challan': 'Order Management Pipeline',
+        'expenses': 'Expenses Tracking & Approvals',
+        'warehouse': 'Warehouse Live Inventory',
+        'attendance': 'Salesman Routes Track',
+        'reports': 'Sales Orders Reports',
+        'outstanding': 'Outstanding Party Ledger',
+        'master-mgmt': 'Customer Master Directory',
+        'users': 'Security Account configurations'
+      };
+      document.getElementById('view-title').innerText = titleMap[activeTab] || "BK Processing ERP Portal";
+
+      if (activeTab === 'dashboard') renderDashboardModule();
+      if (activeTab === 'challan') renderChallanPipeline();
+      if (activeTab === 'expenses') renderExpensesTerminal();
+      if (activeTab === 'warehouse') renderWarehouseModuleData();
+      if (activeTab === 'attendance') renderAttendanceLogs();
+      if (activeTab === 'reports') renderReportsPageData();
+      if (activeTab === 'users') loadUserManagement(false);
+      if (activeTab === 'outstanding') loadOutstandingModule();
+      if (activeTab === 'direct-sales') initDirectSalesModule();
+      if (activeTab === 'master-mgmt') initMasterMgmtModule();
+    }
+
+    function checkAttendanceWorkflow() {
+      const userRoleClean = (currentUser.role || "").trim().toLowerCase();
+      if (userRoleClean === "admin" || userRoleClean === "manager" || userRoleClean === "accounts") return;
+      const todayStr = new Date().toISOString().split('T')[0];
+      if (!SafeStorage.getItem(`attendance_${currentUser.username}_${todayStr}`)) {
+        const attendanceModal = document.getElementById('modal-attendance');
+        if (attendanceModal) {
+          attendanceModal.classList.remove('hidden');
+        } else {
+          console.warn("Operational safety notice: 'modal-attendance' was not found in DOM.");
+        }
+      }
+    }
+
+    const SafeStorage = {
+      getItem: key => localStorage.getItem(key),
+      setItem: (key, val) => localStorage.setItem(key, val),
+      removeItem: key => localStorage.removeItem(key)
+    };
+
+    // ========================================================
+    // 🔔 REAL-TIME SOUND & TAB FLASHING ALERT SYSTEM (100% GAS COMPATIBLE)
+    // ========================================================
+    function requestNotificationPermission() {
+      if (!alertsEnabled) {
+        try {
+          alertAudio.play().then(() => {
+            alertAudio.pause();
+            alertAudio.currentTime = 0;
+            alertsEnabled = true;
+            updateNotificationButtonUI(true);
+            showToast("✅ Sound Alerts & Tab Flashing Enabled!");
+          }).catch(e => {
+            alertsEnabled = true;
+            updateNotificationButtonUI(true);
+            showToast("✅ Alerts Active! Click anywhere on screen to enable sound.");
+          });
+        } catch(e) {
+          alertsEnabled = true;
+          updateNotificationButtonUI(true);
+          showToast("✅ Alerts Active!");
+        }
+      } else {
+        alertsEnabled = false;
+        updateNotificationButtonUI(false);
+        showToast("⏸️ Alerts Paused.");
+      }
+    }
+
+    function updateNotificationButtonUI(enabled) {
+      const btn = document.getElementById('btn-enable-notifications');
+      if (!btn) return;
+      if (enabled) {
+        btn.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition-all";
+        btn.innerHTML = "🔔 <span class=\"hidden sm:inline\">Alerts On</span>";
+      } else {
+        btn.className = "bg-amber-500 hover:bg-amber-600 text-white font-extrabold text-xs px-2.5 py-1.5 rounded-lg shadow-sm flex items-center gap-1 transition-all";
+        btn.innerHTML = "🔔 <span class=\"hidden sm:inline\">Alerts Off</span>";
+      }
+    }
+
+    function sendDesktopNotification(title, message) {
+      playNotificationSound();
+      startTitleBlink(title);
+      showToast(`${title}: ${message}`);
+    }
+
+    function playNotificationSound() {
+      try {
+        alertAudio.currentTime = 0;
+        alertAudio.play().catch(e => console.log("Sound play error:", e));
+      } catch(e) {}
+    }
+
+    function startTitleBlink(msg) {
+      stopTitleBlink();
+      let toggle = false;
+      titleBlinkInterval = setInterval(() => {
+        document.title = toggle ? `🚨 ${msg}` : originalDocumentTitle;
+        toggle = !toggle;
+      }, 1000);
+
+      window.onfocus = function() {
+        stopTitleBlink();
+      };
+    }
+
+    function stopTitleBlink() {
+      if (titleBlinkInterval) {
+        clearInterval(titleBlinkInterval);
+        titleBlinkInterval = null;
+      }
+      document.title = originalDocumentTitle;
+    }
+
+    function checkRoleBasedNotifications(orders) {
+      if (!currentUser) return;
+
+      const roleClean = (currentUser.role || "").toLowerCase();
+      const isAdmin = roleClean.includes("admin");
+      const isAccounts = roleClean.includes("accounts");
+      const isManager = roleClean.includes("manager");
+
+      let currentPacked = 0;
+      let currentPending = 0;
+      let currentBilled = 0;
+
+      orders.forEach(o => {
+        if (o.status === "Packed") currentPacked++;
+        if (o.status === "Pending") currentPending++;
+        if (o.status === "Billed") currentBilled++;
+      });
+
+      if (isAccounts || isAdmin) {
+        if (lastPackedCount !== -1 && currentPacked > lastPackedCount) {
+          const diff = currentPacked - lastPackedCount;
+          sendDesktopNotification(
+            `NEW BILLING ALERT (${diff})`,
+            `कुल ${currentPacked} ऑर्डर्स बिलिंग के लिए तैयार हैं!`
+          );
+        }
+      }
+
+      if (isManager || isAdmin) {
+        if (lastPendingCount !== -1 && currentPending > lastPendingCount) {
+          const diff = currentPending - lastPendingCount;
+          sendDesktopNotification(
+            `NEW ORDER (${diff})`,
+            `${diff} नया ऑर्डर पैकिंग के लिए आया है!`
+          );
+        }
+        if (lastBilledCount !== -1 && currentBilled > lastBilledCount) {
+          const diff = currentBilled - lastBilledCount;
+          sendDesktopNotification(
+            `READY DISPATCH (${diff})`,
+            `${diff} ऑर्डर बिल होकर तैयार है!`
+          );
+        }
+      }
+
+      lastPackedCount = currentPacked;
+      lastPendingCount = currentPending;
+      lastBilledCount = currentBilled;
+    }
+
+    // 🌟 GLOBAL VIEW DETAILS MODAL HANDLERS
+    window.openViewItemsModal = function(orderId) {
+      var order = null;
+      for (var i = 0; i < cachedOrders.length; i++) {
+        if (cachedOrders[i].orderId === orderId) {
+          order = cachedOrders[i];
+          break;
+        }
+      }
+      if (!order) return;
+
+      document.getElementById('modal-view-order-id').innerText = orderId;
+      
+      var partyElem = document.getElementById('modal-view-customer-party-name');
+      if (partyElem) partyElem.innerText = order.customer || "N/A";
+
+      var salesmanElem = document.getElementById('modal-view-salesman-name');
+      if (salesmanElem) salesmanElem.innerText = "👤 " + (order.salesman || "N/A");
+
+      var tbody = document.getElementById('modal-view-items-tbody');
+      tbody.innerHTML = '';
+
+      var items = order.items || [];
+      for (var j = 0; j < items.length; j++) {
+        var item = items[j];
+        var tr = document.createElement('tr');
+        tr.className = "border-b border-slate-100 hover:bg-slate-50";
+        tr.innerHTML = '<td class="p-3 font-semibold text-slate-800">' + item.product + '</td>' +
+                       '<td class="p-3 text-slate-500">' + item.packing + '</td>' +
+                       '<td class="p-3 text-right font-bold text-slate-700">' + item.qty + ' ' + item.unit + '</td>' +
+                       '<td class="p-3 text-right text-slate-500">₹' + item.rate.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>' +
+                       '<td class="p-3 text-right font-extrabold text-slate-800">₹' + item.total.toLocaleString('en-IN', {minimumFractionDigits: 2}) + '</td>';
+        tbody.appendChild(tr);
+      }
+
+      document.getElementById('modal-view-grand-total').innerText = "₹" + order.totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2});
+
+      var remarksContainer = document.getElementById('modal-view-remarks-container');
+      var remarksEl = document.getElementById('modal-view-remarks');
+      if (remarksContainer && remarksEl) {
+        if (order.remarks && order.remarks !== "N/A" && order.remarks.trim() !== "") {
+          remarksEl.innerText = order.remarks;
+          remarksContainer.classList.remove('hidden');
+        } else {
+          remarksContainer.classList.add('hidden');
+        }
+      }
+
+      document.getElementById('modal-view-items').classList.remove('hidden');
+    };
+
+    window.closeViewItemsModal = function() {
+      document.getElementById('modal-view-items').classList.add('hidden');
+    };
+
+    // --- QUICK CUSTOMER ADD HANDLERS ---
+    window.openQuickCustomerModal = function(searchVal) {
+      document.getElementById('qc-name').value = searchVal;
+      document.getElementById('qc-phone').value = '';
+      document.getElementById('qc-city').value = '';
+      document.getElementById('modal-quick-customer').classList.remove('hidden');
+    };
+    window.closeQuickCustomerModal = function() {
+      document.getElementById('modal-quick-customer').classList.add('hidden');
+    };
+    window.submitQuickCustomer = function() {
+      const name = document.getElementById('qc-name').value.trim();
+      const phone = document.getElementById('qc-phone').value.trim();
+      const city = document.getElementById('qc-city').value.trim();
+      const state = document.getElementById('qc-state').value;
+      const gstNo = document.getElementById('qc-gst').value.trim();
+      
+      if (!name) {
+        alert("⚠️ ग्राहक नाम दर्ज करना आवश्यक है!");
+        return;
+      }
+
+      closeQuickCustomerModal();
+      showLoader("Adding Customer Party...");
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoader();
+          if (res.success) {
+            showToast("Customer Party successfully added!");
+            formData.customers.push(res.customer);
+            
+            const custIn = document.getElementById('customer-search-input');
+            if (custIn) {
+              custIn.value = res.customer.name + " - " + res.customer.city;
+              custIn.setAttribute('data-selected-id', res.customer.id);
+            }
+          } else {
+            showToast(res.error, "error");
+          }
+        })
+        .withFailureHandler(handleServerFailure)
+        .addCustomer(name, phone, city, state, gstNo);
+    };
+
+    // --- QUICK PRODUCT ADD HANDLERS ---
+    window.openQuickProductModal = function(searchVal) {
+      document.getElementById('qp-name').value = searchVal;
+      document.getElementById('qp-under').value = '';
+      document.getElementById('qp-unit').value = 'KG';
+      document.getElementById('modal-quick-product').classList.remove('hidden');
+    };
+    window.closeQuickProductModal = function() {
+      document.getElementById('modal-quick-product').classList.add('hidden');
+    };
+    window.submitQuickProduct = function() {
+      const name = document.getElementById('qp-name').value.trim();
+      const under = document.getElementById('qp-under').value.trim();
+      const unit = document.getElementById('qp-unit').value;
+      
+      if (!name) {
+        alert("⚠️ : प्रोड़क्ट नाम दर्ज करना आवश्यक है!");
+        return;
+      }
+
+      closeQuickProductModal();
+      showLoader("Adding Spice Product...");
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoader();
+          if (res.success) {
+            showToast("Spice Product successfully added!");
+            
+            formData.products.push(res.product);
+            
+            const prodIn = document.getElementById('product-search-input');
+            if (prodIn) {
+              prodIn.value = res.product.name;
+              prodIn.setAttribute('data-selected-id', res.product.id);
+              prodIn.dataset.selectedUnit = res.product.unit || "KG";
+              
+              document.getElementById('item-qty-unit-label').innerText = "(" + (res.product.unit || "KG") + ")";
+              document.getElementById('item-rate').value = "";
+            }
+          } else {
+            showToast(res.error, "error");
+          }
+        })
+        .withFailureHandler(handleServerFailure)
+        .addProduct(name, under, unit);
+    };
+
+    // --- QUICK PACKING ADD HANDLERS ---
+    window.openQuickPackingModal = function(searchVal) {
+      document.getElementById('qpk-name').value = searchVal;
+      document.getElementById('modal-quick-packing').classList.remove('hidden');
+    };
+    window.closeQuickPackingModal = function() {
+      document.getElementById('modal-quick-packing').classList.add('hidden');
+    };
+    window.submitQuickPacking = function() {
+      const name = document.getElementById('qpk-name').value.trim();
+      
+      if (!name) {
+        alert("⚠️ : पैकिंग नाम दर्ज करना आवश्यक है!");
+        return;
+      }
+
+      closeQuickPackingModal();
+      showLoader("Adding Packing Type...");
+      
+      google.script.run
+        .withSuccessHandler(function(res) {
+          hideLoader();
+          if (res.success) {
+            showToast("Packing Type successfully added!");
+            
+            formData.packings.push(res.packing);
+            
+            const packIn = document.getElementById('packing-search-input');
+            if (packIn) {
+              packIn.value = res.packing.name;
+              packIn.setAttribute('data-selected-id', res.packing.id);
+            }
+          } else {
+            showToast(res.error, "error");
+          }
+        })
+        .withFailureHandler(handleServerFailure)
+        .addPackingType(name);
+    };
+
+    // --- 🎧 HELPLINE & CHAT SUPPORT MODAL HANDLERS ---
+    window.openSupportModal = function() {
+      document.getElementById('support-issue-text').value = '';
+      document.getElementById('modal-support-chat').classList.remove('hidden');
+    };
+
+    window.closeSupportModal = function() {
+      document.getElementById('modal-support-chat').classList.add('hidden');
+    };
+
+    window.sendSupportProblem = function() {
+      var issueText = document.getElementById('support-issue-text').value.trim();
+      if (!issueText) {
+        alert("⚠️ कृपया अपनी समस्या दर्ज करें!");
+        return;
+      }
+
+      var userName = currentUser ? currentUser.name : "ERP Client";
+      var userRole = currentUser ? currentUser.role : "User";
+      
+      var fullMsg = "🚨 *BK ERP Issue Report*\n" +
+                    "👤 *User:* " + userName + " (" + userRole + ")\n" +
+                    "📝 *Problem:* " + issueText + "\n\n" +
+                    "_Sent from BK Processing ERP Terminal_";
+
+      var encodedMsg = encodeURIComponent(fullMsg);
+      var whatsappUrl = "https://wa.me/919216457535?text=" + encodedMsg;
+
+      window.open(whatsappUrl, '_blank');
+      closeSupportModal();
+      showToast("Opening WhatsApp Support Chat...");
+    };
+  </script>
+</body>
+</html>
